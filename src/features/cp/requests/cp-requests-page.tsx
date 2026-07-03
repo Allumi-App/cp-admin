@@ -215,7 +215,7 @@ export function CpRequestsPage() {
 
               <ActionMenu
                 items={[
-                  { label: 'Send email', icon: Mail, onClick: () => { window.location.href = mailtoFor(r) } },
+                  { label: 'Send email', icon: Mail, onClick: () => { window.open(mailtoFor(r), '_blank', 'noopener') } },
                   r.status === 'replied'
                     ? { label: 'Mark as new', icon: RotateCcw, onClick: () => setStatus(r, 'new') }
                     : { label: 'Mark as replied', icon: MailCheck, onClick: () => setStatus(r, 'replied') },
