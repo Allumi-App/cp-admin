@@ -1,6 +1,7 @@
 import {
   Bold,
   Italic,
+  Underline,
   Strikethrough,
   Heading1,
   Heading2,
@@ -27,11 +28,14 @@ const actions: {
   icon: React.ComponentType<{ className?: string }>
   type: ActionType
   syntax: string
+  /** For asymmetric wraps (e.g. HTML tags), the closing token. Defaults to `syntax`. */
+  close?: string
   tooltip: string
   group?: string
 }[] = [
   { icon: Bold, type: 'wrap', syntax: '**', tooltip: 'Bold', group: 'inline' },
   { icon: Italic, type: 'wrap', syntax: '_', tooltip: 'Italic', group: 'inline' },
+  { icon: Underline, type: 'wrap', syntax: '<u>', close: '</u>', tooltip: 'Underline', group: 'inline' },
   { icon: Strikethrough, type: 'wrap', syntax: '~~', tooltip: 'Strikethrough', group: 'inline' },
   { icon: Code, type: 'wrap', syntax: '`', tooltip: 'Inline code', group: 'inline' },
   { icon: Heading1, type: 'prefix', syntax: '# ', tooltip: 'Heading 1', group: 'heading' },
@@ -52,6 +56,7 @@ function insertMarkdown(
   onChange: (v: string) => void,
   type: ActionType,
   syntax: string,
+  close?: string,
 ) {
   const { selectionStart, selectionEnd } = textarea
   const selected = value.substring(selectionStart, selectionEnd)
@@ -60,10 +65,11 @@ function insertMarkdown(
   let cursorPos: number
 
   if (type === 'wrap') {
+    const closing = close ?? syntax
     const inner = selected || 'text'
-    const wrapped = `${syntax}${inner}${syntax}`
+    const wrapped = `${syntax}${inner}${closing}`
     newValue = value.substring(0, selectionStart) + wrapped + value.substring(selectionEnd)
-    cursorPos = selectionStart + syntax.length + inner.length + syntax.length
+    cursorPos = selectionStart + syntax.length + inner.length + closing.length
   } else if (type === 'prefix') {
     const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
     newValue = value.substring(0, lineStart) + syntax + value.substring(lineStart)
@@ -105,7 +111,7 @@ export function MarkdownToolbar({ textareaRef, value, onChange }: MarkdownToolba
               title={action.tooltip}
               onClick={() => {
                 if (textareaRef.current) {
-                  insertMarkdown(textareaRef.current, value, onChange, action.type, action.syntax)
+                  insertMarkdown(textareaRef.current, value, onChange, action.type, action.syntax, action.close)
                 }
               }}
               className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"

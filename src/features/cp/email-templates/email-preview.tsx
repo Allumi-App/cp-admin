@@ -1,6 +1,9 @@
 // Live preview of the branded email shell around the editable body — mirrors
-// emailShell() in the CP site's send-booking-request server action. Placeholders
+// emailShell() + markdown rendering in the CP send-* edge functions. Placeholders
 // are filled with sample data so Christina sees what the email actually looks like.
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 
 const SAMPLE: Record<string, string> = {
   firstName: 'Anna',
@@ -19,9 +22,7 @@ function fill(text: string): string {
 
 export function EmailPreview({ subject, body }: { subject: string; body: string }) {
   const filledSubject = fill(subject || '').trim()
-  const paragraphs = fill(body || '')
-    .split(/\n{2,}/)
-    .filter((p) => p.trim().length > 0)
+  const filledBody = fill(body || '')
 
   return (
     <div style={{ background: '#FDF2F0', borderRadius: 16, padding: 20 }}>
@@ -61,34 +62,28 @@ export function EmailPreview({ subject, body }: { subject: string; body: string 
           </div>
         </div>
 
-        {/* Body — the editable content */}
-        <div style={{ padding: '26px 32px 24px' }}>
-          {paragraphs.length === 0 ? (
+        {/* Body — the editable content, rendered as markdown (matches the sent email) */}
+        <div style={{ padding: '26px 32px 24px', fontSize: 14, lineHeight: 1.65, color: '#2C1810' }}>
+          {filledBody.trim().length === 0 ? (
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: '#2C181066' }}>
               Your message will appear here…
             </p>
           ) : (
-            paragraphs.map((p, i) => {
-              const lines = p.split('\n')
-              return (
-                <p
-                  key={i}
-                  style={{
-                    margin: i === paragraphs.length - 1 ? 0 : '0 0 14px',
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    color: '#2C1810',
-                  }}
-                >
-                  {lines.map((line, j) => (
-                    <span key={j}>
-                      {line}
-                      {j < lines.length - 1 ? <br /> : null}
-                    </span>
-                  ))}
-                </p>
-              )
-            })
+            <div
+              className={[
+                '[&_p]:my-0 [&_p]:mb-3.5 [&_p:last-child]:mb-0 [&_p]:leading-[1.65]',
+                '[&_strong]:font-bold [&_em]:italic [&_u]:underline [&_del]:line-through',
+                '[&_a]:text-[#C49C40] [&_a]:underline',
+                '[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1',
+                '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2 [&_h3]:font-semibold [&_h3]:mb-1',
+                '[&_blockquote]:border-l-2 [&_blockquote]:border-[#2C181033] [&_blockquote]:pl-3 [&_blockquote]:italic',
+                '[&_hr]:border-[#2C18101A] [&_hr]:my-4',
+              ].join(' ')}
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                {filledBody}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
 

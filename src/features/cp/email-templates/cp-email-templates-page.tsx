@@ -8,11 +8,10 @@ import {
   type CpEmailTemplate,
 } from './use-cp-email-templates'
 import { EmailPreview } from './email-preview'
+import { MarkdownEditor } from '@/components/shared/markdown/markdown-editor'
 
 const inputClass =
   'w-full rounded-xl border border-input bg-white px-3 py-2 h-10 text-base md:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_#2C1810] transition-colors'
-const textareaClass =
-  'w-full rounded-xl border border-input bg-white px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_#2C1810] transition-colors resize-y font-mono'
 const tabClass = (active: boolean) =>
   `px-4 py-2 h-10 rounded-xl text-sm font-medium transition-colors ${
     active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
@@ -82,7 +81,7 @@ function TemplateCard({ template }: { template: CpEmailTemplate }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground/80 mb-1.5">Body ({langLabel})</label>
-          <textarea value={bodyVal} onChange={(e) => setBod(e.target.value)} rows={12} className={textareaClass} />
+          <MarkdownEditor value={bodyVal} onChange={setBod} rows={12} />
         </div>
       </div>
 

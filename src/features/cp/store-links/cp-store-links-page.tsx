@@ -3,6 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useOrderedList } from '../lib/use-ordered-list'
 import { Plus, GripVertical, Trash2, Pencil, X, Download, Loader2 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { FileUpload } from '@/components/shared/file-upload'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { CpStoreIcon } from '../components/platform-icons'
 import {
@@ -38,10 +39,14 @@ export function CpStoreLinksPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [platform, setPlatform] = useState('ios')
   const [url, setUrl] = useState('')
+  const [badgeFile, setBadgeFile] = useState<File | null>(null)
+  const [badgePreview, setBadgePreview] = useState<string | null>(null)
 
   function openCreate() {
     setPlatform('ios')
     setUrl('')
+    setBadgeFile(null)
+    setBadgePreview(null)
     setEditingId(null)
     setShowForm(true)
   }
@@ -49,14 +54,21 @@ export function CpStoreLinksPage() {
   function openEdit(link: CpStoreLink) {
     setPlatform(link.platform)
     setUrl(link.url || '')
+    setBadgeFile(null)
+    setBadgePreview(link.badge_image_url)
     setEditingId(link.id)
     setShowForm(true)
   }
 
+  function handleBadgeFile(file: File) {
+    setBadgeFile(file)
+    setBadgePreview(URL.createObjectURL(file))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (editingId) await updateLink.mutateAsync({ id: editingId, platform, url })
-    else await createLink.mutateAsync({ platform, url })
+    if (editingId) await updateLink.mutateAsync({ id: editingId, platform, url, ...(badgeFile && { badgeFile }) })
+    else await createLink.mutateAsync({ platform, url, ...(badgeFile && { badgeFile }) })
     setShowForm(false)
   }
 
@@ -103,6 +115,15 @@ export function CpStoreLinksPage() {
                 <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} required className={inputClass} placeholder="https://..." />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">Badge Image</label>
+              <FileUpload
+                onFile={handleBadgeFile}
+                accept={{ 'image/*': ['.png', '.svg', '.webp'] }}
+                label="Upload store badge image"
+                preview={badgePreview}
+              />
+            </div>
             <div className="flex gap-3">
               <button type="submit" disabled={createLink.isPending || updateLink.isPending} className="bg-primary text-primary-foreground px-6 py-2 h-10 rounded-xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {editingId ? 'Save' : 'Add Link'}
@@ -142,7 +163,11 @@ export function CpStoreLinksPage() {
                         <div {...provided.dragHandleProps} className="text-muted-foreground cursor-grab">
                           <GripVertical className="w-4 h-4" />
                         </div>
-                        <CpStoreIcon platform={link.platform} />
+                        {link.badge_image_url ? (
+                          <img src={link.badge_image_url} alt={link.platform} className="h-10 w-auto object-contain" />
+                        ) : (
+                          <CpStoreIcon platform={link.platform} />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">{PLATFORM_LABELS[link.platform] || link.platform}</div>
                           <div className="text-xs text-muted-foreground truncate">{link.url}</div>

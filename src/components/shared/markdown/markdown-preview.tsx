@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 
 interface MarkdownPreviewProps {
   content: string
@@ -27,7 +28,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
         '[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3',
         '[&_li]:mb-1',
         '[&_a]:text-primary [&_a]:underline',
-        '[&_strong]:font-bold [&_em]:italic',
+        '[&_strong]:font-bold [&_em]:italic [&_u]:underline',
         '[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3',
         '[&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm',
         '[&_pre]:bg-secondary [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:mb-3 [&_pre]:overflow-auto',
@@ -37,7 +38,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
         '[&_hr]:border-input [&_hr]:my-4',
       ].join(' ')}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{content}</ReactMarkdown>
     </div>
   )
 }

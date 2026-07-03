@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Inbox, Flag, MailCheck, RotateCcw, Archive, Trash2, Phone } from 'lucide-react'
+import { Inbox, Flag, Mail, MailCheck, RotateCcw, Archive, Trash2, Phone } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { ActionMenu } from '@/components/shared/action-menu'
 import {
   useCpRequests,
   useUpdateCpRequests,
@@ -41,6 +42,22 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+/** Prefilled reply email — opens the admin's mail client with a draft ready. */
+function mailtoFor(r: CpBookingRequest) {
+  const de = r.lang === 'de'
+  const subject = de
+    ? `Deine Coaching-Anfrage${r.package_name ? ` — ${r.package_name}` : ''}`
+    : `Your coaching request${r.package_name ? ` — ${r.package_name}` : ''}`
+  const greeting = de
+    ? `Hallo ${r.first_name ?? ''},`.trim()
+    : `Hi ${r.first_name ?? ''},`.trim()
+  const opener = de
+    ? 'vielen Dank für deine Anfrage.'
+    : 'thank you so much for reaching out.'
+  const body = `${greeting}\n\n${opener}\n\n`
+  return `mailto:${r.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
 export function CpRequestsPage() {
   const { data: requests, isLoading } = useCpRequests()
   const update = useUpdateCpRequests()
@@ -48,7 +65,7 @@ export function CpRequestsPage() {
 
   const [filter, setFilter] = useState<CpRequestStatus | 'all'>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
 
   const all = requests ?? []
   const counts = {
@@ -92,6 +109,10 @@ export function CpRequestsPage() {
     update.mutate({ ids: [r.id], patch: { is_flagged: !r.is_flagged } })
   }
 
+  function setStatus(r: CpBookingRequest, status: CpRequestStatus) {
+    update.mutate({ ids: [r.id], patch: { status } })
+  }
+
   return (
     <div>
       <PageHeader title="Requests" />
@@ -123,7 +144,7 @@ export function CpRequestsPage() {
           <button onClick={() => bulkStatus('archived')} className={actionBtn()}>
             <Archive className="w-4 h-4" /> Archive
           </button>
-          <button onClick={() => setConfirmDelete(true)} className={actionBtn('text-destructive hover:bg-destructive/10')}>
+          <button onClick={() => setDeleteIds(selectedIds)} className={actionBtn('text-destructive hover:bg-destructive/10')}>
             <Trash2 className="w-4 h-4" /> Delete
           </button>
         </div>
@@ -191,22 +212,48 @@ export function CpRequestsPage() {
                 </div>
                 {r.focus && <p className="mt-2 text-sm text-foreground/80 whitespace-pre-wrap">{r.focus}</p>}
               </div>
+
+              <ActionMenu
+                items={[
+                  { label: 'Send email', icon: Mail, onClick: () => { window.location.href = mailtoFor(r) } },
+                  r.status === 'replied'
+                    ? { label: 'Mark as new', icon: RotateCcw, onClick: () => setStatus(r, 'new') }
+                    : { label: 'Mark as replied', icon: MailCheck, onClick: () => setStatus(r, 'replied') },
+                  { label: r.is_flagged ? 'Unflag' : 'Flag', icon: Flag, onClick: () => toggleFlag(r) },
+                  r.status === 'archived'
+                    ? { label: 'Unarchive', icon: RotateCcw, onClick: () => setStatus(r, 'new') }
+                    : { label: 'Archive', icon: Archive, onClick: () => setStatus(r, 'archived') },
+                  { label: 'Delete', icon: Trash2, destructive: true, onClick: () => setDeleteIds([r.id]) },
+                ]}
+              />
             </div>
           ))}
         </div>
       )}
 
       <ConfirmDialog
-        open={confirmDelete}
-        title="Delete requests"
-        description={`Permanently delete ${selected.size} request${selected.size === 1 ? '' : 's'}? This cannot be undone.`}
+        open={deleteIds !== null}
+        title={deleteIds && deleteIds.length === 1 ? 'Delete request' : 'Delete requests'}
+        description={`Permanently delete ${deleteIds?.length ?? 0} request${
+          deleteIds?.length === 1 ? '' : 's'
+        }? This cannot be undone.`}
         confirmLabel="Delete"
         destructive
         onConfirm={() => {
-          del.mutate(selectedIds, { onSuccess: () => setSelected(new Set()) })
-          setConfirmDelete(false)
+          if (deleteIds) {
+            const ids = deleteIds
+            del.mutate(ids, {
+              onSuccess: () =>
+                setSelected((prev) => {
+                  const next = new Set(prev)
+                  ids.forEach((id) => next.delete(id))
+                  return next
+                }),
+            })
+          }
+          setDeleteIds(null)
         }}
-        onCancel={() => setConfirmDelete(false)}
+        onCancel={() => setDeleteIds(null)}
       />
     </div>
   )
