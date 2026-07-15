@@ -57,6 +57,7 @@ export interface CpEcosystemCard extends CpListRow {
   cta_label: string | null
   cta_label_de: string | null
   url: string | null
+  image_url: string | null
 }
 
 export const testimonialsHooks = makeCpListHooks<CpTestimonial>('testimonials', 'Testimonial')

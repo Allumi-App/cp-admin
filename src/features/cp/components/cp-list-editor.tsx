@@ -12,12 +12,14 @@ import {
   Loader2,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { FileUpload } from '@/components/shared/file-upload'
+import { supabaseCp } from '@/lib/supabase-cp'
 import type { CpListHooks, CpListRow } from '../lib/make-list-hooks'
 
 export interface CpFieldDef {
   name: string
   label: string
-  type?: 'text' | 'textarea' | 'select'
+  type?: 'text' | 'textarea' | 'select' | 'image'
   /** Options for a `select` field (non-bilingual). */
   options?: { value: string; label: string }[]
   bilingual?: boolean
@@ -45,6 +47,7 @@ export function CpListEditor<T extends CpListRow>({
   singularLabel,
   fields,
   hooks,
+  imageFolder = 'list',
 }: {
   heading: string
   addLabel: string
@@ -52,6 +55,8 @@ export function CpListEditor<T extends CpListRow>({
   singularLabel: string
   fields: CpFieldDef[]
   hooks: CpListHooks<T>
+  /** Storage folder (in the `website-assets` bucket) for uploaded image fields. */
+  imageFolder?: string
 }) {
   const { data: serverItems, isLoading } = hooks.useList()
   const createItem = hooks.useCreate()
@@ -66,6 +71,11 @@ export function CpListEditor<T extends CpListRow>({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'en' | 'de'>('en')
   const [form, setForm] = useState<Record<string, string>>({})
+  // Freshly picked image files (keyed by field name) + their object-URL previews,
+  // uploaded to storage on submit. Separate from `form` so we don't persist blob URLs.
+  const [files, setFiles] = useState<Record<string, File>>({})
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+  const [uploading, setUploading] = useState(false)
 
   const hasBilingual = fields.some((f) => f.bilingual)
   const titleField = fields.find((f) => f.title) ?? fields[0]
@@ -81,6 +91,8 @@ export function CpListEditor<T extends CpListRow>({
 
   function openCreate() {
     setForm(blankForm())
+    setFiles({})
+    setPreviews({})
     setActiveTab('en')
     setEditingId(null)
     setShowForm(true)
@@ -93,9 +105,16 @@ export function CpListEditor<T extends CpListRow>({
       if (f.bilingual) data[`${f.name}_de`] = (row[`${f.name}_de`] as string) || ''
     }
     setForm(data)
+    setFiles({})
+    setPreviews({})
     setActiveTab('en')
     setEditingId(row.id)
     setShowForm(true)
+  }
+
+  function handleImageFile(name: string, file: File) {
+    setFiles((prev) => ({ ...prev, [name]: file }))
+    setPreviews((prev) => ({ ...prev, [name]: URL.createObjectURL(file) }))
   }
 
   function setField(key: string, value: string) {
@@ -104,14 +123,31 @@ export function CpListEditor<T extends CpListRow>({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const values: Record<string, unknown> = {}
-    for (const f of fields) {
-      values[f.name] = form[f.name] || null
-      if (f.bilingual) values[`${f.name}_de`] = form[`${f.name}_de`] || null
+    setUploading(true)
+    try {
+      const values: Record<string, unknown> = {}
+      for (const f of fields) {
+        if (f.type === 'image' && files[f.name]) {
+          const file = files[f.name]
+          const ext = file.name.split('.').pop()
+          const path = `${imageFolder}/${crypto.randomUUID()}.${ext}`
+          const { error } = await supabaseCp.storage
+            .from('website-assets')
+            .upload(path, file, { upsert: true })
+          if (error) throw error
+          const { data } = supabaseCp.storage.from('website-assets').getPublicUrl(path)
+          values[f.name] = data.publicUrl
+        } else {
+          values[f.name] = form[f.name] || null
+        }
+        if (f.bilingual) values[`${f.name}_de`] = form[`${f.name}_de`] || null
+      }
+      if (editingId) await updateItem.mutateAsync({ id: editingId, ...values })
+      else await createItem.mutateAsync(values)
+      setShowForm(false)
+    } finally {
+      setUploading(false)
     }
-    if (editingId) await updateItem.mutateAsync({ id: editingId, ...values })
-    else await createItem.mutateAsync(values)
-    setShowForm(false)
   }
 
   function toggleExpand(id: string) {
@@ -131,7 +167,14 @@ export function CpListEditor<T extends CpListRow>({
           {f.label} ({lang === 'en' ? 'English' : 'Deutsch'})
           {f.required && lang === 'en' ? ' *' : ''}
         </label>
-        {f.type === 'select' ? (
+        {f.type === 'image' ? (
+          <FileUpload
+            onFile={(file) => handleImageFile(f.name, file)}
+            accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] }}
+            label="Upload image"
+            preview={previews[f.name] || form[f.name] || null}
+          />
+        ) : f.type === 'select' ? (
           <select
             value={form[key] || ''}
             onChange={(e) => setField(key, e.target.value)}
@@ -211,10 +254,10 @@ export function CpListEditor<T extends CpListRow>({
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={createItem.isPending || updateItem.isPending}
+                disabled={createItem.isPending || updateItem.isPending || uploading}
                 className="bg-primary text-primary-foreground px-6 py-2 h-10 rounded-xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
-                {editingId ? 'Save' : addLabel}
+                {uploading ? 'Uploading...' : editingId ? 'Save' : addLabel}
               </button>
               <button
                 type="button"
@@ -288,6 +331,18 @@ export function CpListEditor<T extends CpListRow>({
                                   const en = item[f.name] as string
                                   const de = f.bilingual ? (item[`${f.name}_de`] as string) : null
                                   if (!en && !de) return null
+                                  if (f.type === 'image') {
+                                    return (
+                                      <div key={f.name} className="mt-3">
+                                        <div className="text-xs font-medium text-foreground/60">{f.label}</div>
+                                        <img
+                                          src={en}
+                                          alt={f.label}
+                                          className="mt-1 h-20 w-20 rounded-2xl border border-border object-contain"
+                                        />
+                                      </div>
+                                    )
+                                  }
                                   return (
                                     <div key={f.name} className="mt-3">
                                       <div className="text-xs font-medium text-foreground/60">{f.label}</div>

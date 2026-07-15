@@ -34,16 +34,22 @@ export function CpEcosystemPage() {
             singularLabel="Card"
             emptyText="No product cards yet."
             hooks={ecosystemCardsHooks}
+            imageFolder="ecosystem"
             fields={[
               {
                 name: 'product',
-                label: 'Product (image style)',
+                label: 'Product (fallback mockup style)',
                 type: 'select',
                 options: [
                   { value: 'allumi', label: 'ALLUMI — App (phone mockup)' },
                   { value: 'show', label: 'The Show — Podcast (phone mockup)' },
                   { value: 'book', label: 'Unbecoming Human — Book (cover mockup)' },
                 ],
+              },
+              {
+                name: 'image_url',
+                label: 'Image (replaces the mockup when set)',
+                type: 'image',
               },
               { name: 'title', label: 'Title', bilingual: true, required: true, title: true },
               { name: 'description', label: 'Description', type: 'textarea', bilingual: true },
