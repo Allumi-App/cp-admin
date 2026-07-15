@@ -18,6 +18,7 @@ import {
   Quote,
   Tag,
   Podcast,
+  LayoutGrid,
   Inbox,
   Users,
 } from 'lucide-react'
@@ -45,6 +46,7 @@ const NAV: { top: NavItem[]; website: NavItem[]; email: NavItem[] } = {
     { to: '/cp/sections', label: 'Page Sections', icon: Layout },
     { to: '/cp/about', label: 'About', icon: User },
     { to: '/cp/approach', label: 'Coaching Pillars', icon: Compass },
+    { to: '/cp/ecosystem', label: 'Ecosystem', icon: LayoutGrid },
     { to: '/cp/testimonials', label: 'Testimonials', icon: Quote },
     { to: '/cp/store-links', label: 'Store Links', icon: Download },
     { to: '/cp/show', label: 'The Show', icon: Podcast },

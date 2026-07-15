@@ -26,6 +26,7 @@ export function CpApproachPage() {
               { name: 'title_accent', label: 'Accent word' },
               { name: 'title_suffix', label: 'Title (suffix)' },
               { name: 'subtitle', label: 'Body', type: 'textarea' },
+              { name: 'body', label: 'Intro paragraph', type: 'textarea' },
               { name: 'cta_primary', label: 'Button' },
             ]}
           />

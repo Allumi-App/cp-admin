@@ -53,6 +53,7 @@ export const CP_SECTION_FIELDS: Record<string, CpSectionField[]> = {
 export const CP_SECTION_LABELS: Record<string, string> = {
   hero: 'Hero',
   approach: 'Coaching',
+  ecosystem: 'Ecosystem',
   allumi: 'ALLUMI App',
   show: 'The Show',
   testimonials: 'Testimonials',
@@ -65,6 +66,7 @@ export const CP_SECTION_LABELS: Record<string, string> = {
 export const CP_LINKED_SECTIONS: Record<string, string> = {
   about: '/cp/about',
   approach: '/cp/approach',
+  ecosystem: '/cp/ecosystem',
   testimonials: '/cp/testimonials',
 }
 

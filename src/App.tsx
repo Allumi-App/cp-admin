@@ -8,6 +8,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { CpSectionsPage } from '@/features/cp/sections/cp-sections-page'
 import { CpAboutPage } from '@/features/cp/about/cp-about-page'
 import { CpApproachPage } from '@/features/cp/approach/cp-approach-page'
+import { CpEcosystemPage } from '@/features/cp/ecosystem/cp-ecosystem-page'
 import { CpTestimonialsPage } from '@/features/cp/testimonials/cp-testimonials-page'
 import { CpFaqPage } from '@/features/cp/faq/cp-faq-page'
 import { CpLegalPage } from '@/features/cp/legal/cp-legal-page'
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/cp/sections" element={<CpSectionsPage />} />
               <Route path="/cp/about" element={<CpAboutPage />} />
               <Route path="/cp/approach" element={<CpApproachPage />} />
+              <Route path="/cp/ecosystem" element={<CpEcosystemPage />} />
               <Route path="/cp/testimonials" element={<CpTestimonialsPage />} />
               <Route path="/cp/store-links" element={<CpStoreLinksPage />} />
               <Route path="/cp/show" element={<CpShowPage />} />

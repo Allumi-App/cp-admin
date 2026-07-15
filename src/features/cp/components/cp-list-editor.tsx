@@ -17,7 +17,9 @@ import type { CpListHooks, CpListRow } from '../lib/make-list-hooks'
 export interface CpFieldDef {
   name: string
   label: string
-  type?: 'text' | 'textarea'
+  type?: 'text' | 'textarea' | 'select'
+  /** Options for a `select` field (non-bilingual). */
+  options?: { value: string; label: string }[]
   bilingual?: boolean
   required?: boolean
   placeholder?: string
@@ -29,6 +31,8 @@ const inputClass =
   'w-full rounded-xl border border-input bg-white px-3 py-2 h-10 text-base md:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_#2C1810] transition-colors'
 const textareaClass =
   'w-full rounded-xl border border-input bg-white px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_#2C1810] transition-colors resize-none'
+const selectClass =
+  "w-full rounded-xl border border-input bg-white pl-3 pr-10 py-2 h-10 text-base md:text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_#2C1810] transition-colors appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[position:right_12px_center] bg-no-repeat"
 const tabClass = (active: boolean) =>
   `px-4 py-2 h-10 rounded-xl text-sm font-medium transition-colors ${
     active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
@@ -69,7 +73,7 @@ export function CpListEditor<T extends CpListRow>({
   function blankForm(): Record<string, string> {
     const data: Record<string, string> = {}
     for (const f of fields) {
-      data[f.name] = ''
+      data[f.name] = f.type === 'select' && f.options?.length ? f.options[0].value : ''
       if (f.bilingual) data[`${f.name}_de`] = ''
     }
     return data
@@ -127,7 +131,19 @@ export function CpListEditor<T extends CpListRow>({
           {f.label} ({lang === 'en' ? 'English' : 'Deutsch'})
           {f.required && lang === 'en' ? ' *' : ''}
         </label>
-        {f.type === 'textarea' ? (
+        {f.type === 'select' ? (
+          <select
+            value={form[key] || ''}
+            onChange={(e) => setField(key, e.target.value)}
+            className={selectClass}
+          >
+            {(f.options ?? []).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : f.type === 'textarea' ? (
           <textarea
             value={form[key] || ''}
             onChange={(e) => setField(key, e.target.value)}
